@@ -58,7 +58,28 @@ train_pairs=load_pairs(r"C:\Users\GOGI LAPTOP\OneDrive\Desktop\urdu-qg-seq2seq\d
 dataset=SentencePieceDataset(train_pairs,sp)
 loader = DataLoader(dataset, batch_size=64, shuffle=True, collate_fn=collate_fn)
 
+
+
+
+from attention import BahdanauAttention
+
+encoder = Encoder()
+attention = BahdanauAttention(decoder_hidden_dim=512, encoder_hidden_dim=1024, attn_dim=512)
+
 for src_batch, tgt_batch in loader:
     print(src_batch.shape)
     print(tgt_batch.shape)
+    
+    encoder_outputs, (h_n, c_n) = encoder(src_batch)
+    
+    mask = (src_batch != 0)
+    
+    batch_size = src_batch.shape[0]
+    dummy_decoder_hidden = torch.randn(batch_size, 512)
+    
+    context, weights = attention(dummy_decoder_hidden, encoder_outputs, mask)
+    
+    print("context shape:", context.shape)
+    print("weights shape:", weights.shape)
+    
     break

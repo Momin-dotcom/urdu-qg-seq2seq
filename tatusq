@@ -1,0 +1,15 @@
+* [33ma6f703e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;32mbackup-before-sync[m[33m)[m Remove TSV datasets from Git and add Padding
+* [33m12d124f[m Add Padding in encoder
+[31m|[m * [33m7aad045[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Add Decoder script
+[31m|[m[31m/[m  
+* [33ma360471[m Add bahdanau attention
+* [33m94c31d4[m Add bahdanau attention
+* [33mcf5db7f[m Remove dataset files and ignore TSVs
+* [33m83a8283[m Add Encoder class
+*   [33m039935e[m Merge pull request #1 from Momin-dotcom/task2-tokenizer
+[33m|[m[34m\[m  
+[33m|[m * [33m8f6d732[m[33m ([m[1;31morigin/task2-tokenizer[m[33m)[m Task 2.2.1 and 2.2.2 Update
+[33m|[m * [33mfa030af[m Task 2.2.1 and 2.2.2 Commit
+[33m|[m[33m/[m  
+* [33m9a7fd68[m Add Task 1: data prep, train/valid splits, histograms
+* [33m71e029a[m Update gitignore
