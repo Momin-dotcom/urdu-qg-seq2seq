@@ -48,60 +48,90 @@ def combine_bidirectional(h_or_c, num_layers):
     combined = h_or_c[:, 0, :, :] + h_or_c[:, 1, :, :]
     return combined
 
+#Gpu
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
 pad_id = 0
 vocab_size = 8000
 sp = spm.SentencePieceProcessor(model_file="tokenizer/ur_sp.model")
 
 train_pairs = load_pairs("data/train.tsv")
 valid_pairs = load_pairs("data/valid.tsv")
+
 train_dataset = SentencePieceDataset(train_pairs, sp)
 valid_dataset = SentencePieceDataset(valid_pairs, sp)
+
 train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, collate_fn=collate_fn)
 valid_loader = DataLoader(valid_dataset, batch_size=64, shuffle=False, collate_fn=collate_fn)
 
 encoder = Encoder()
 decoder = Decoder(vocabulary_size=8000, embedding_dimension=256, hidden_dimensions=512,
                    encoder_hidden_dimension=1024, numOfLayers=2, dropout=0.3, attention_dimension=512)
+
+# ---- NAYI LINES: model ko GPU pe bhejna ----
+encoder = encoder.to(device)
+decoder = decoder.to(device)
+
 optimizer = optim.Adam(list(encoder.parameters()) + list(decoder.parameters()), lr=0.001)
 loss_criteria = nn.CrossEntropyLoss(ignore_index=pad_id)
 
 total_parameters = sum(p.numel() for p in encoder.parameters()) + sum(p.numel() for p in decoder.parameters())
 print(f"Total parameters: {total_parameters}")
+
 best_valid_loss = float('inf')
 
 for epoch in range(10):
     print(f"Epoch {epoch}")
+
     encoder.train()
     decoder.train()
     total_train_loss = 0
 
     for src_batch, tgt_batch in train_loader:
+        # ---- NAYI LINES: data ko bhi GPU pe bhejna, model jahan hai wahan ----
+        src_batch = src_batch.to(device)
+        tgt_batch = tgt_batch.to(device)
+
         optimizer.zero_grad()
+
         encoder_outputs, (h_n, c_n) = encoder(src_batch)
         initial_hidden = combine_bidirectional(h_n, 2)
         initial_cell = combine_bidirectional(c_n, 2)
         mask = (src_batch != 0)
+
         outputs, hidden, cell = decoder(tgt_batch, encoder_outputs, initial_hidden, initial_cell, mask)
+
         loss = loss_criteria(outputs.reshape(-1, vocab_size), tgt_batch[:, 1:].reshape(-1))
         loss.backward()
         optimizer.step()
+
         total_train_loss += loss.item()
 
     avg_train_loss = total_train_loss / len(train_loader)
+
     encoder.eval()
     decoder.eval()
     total_valid_loss = 0
 
     with torch.no_grad():
         for src_batch, tgt_batch in valid_loader:
+            # ---- NAYI LINES: yahan bhi wahi, validation loop mein ----
+            src_batch = src_batch.to(device)
+            tgt_batch = tgt_batch.to(device)
+
             encoder_outputs, (h_n, c_n) = encoder(src_batch)
             initial_hidden = combine_bidirectional(h_n, 2)
             initial_cell = combine_bidirectional(c_n, 2)
             mask = (src_batch != 0)
+
             outputs, hidden, cell = decoder(tgt_batch, encoder_outputs, initial_hidden, initial_cell, mask)
+
             loss = loss_criteria(outputs.reshape(-1, vocab_size), tgt_batch[:, 1:].reshape(-1))
             total_valid_loss += loss.item()
+
     avg_valid_loss = total_valid_loss / len(valid_loader)
+
     print(f"Epoch {epoch}: train_loss={avg_train_loss:.4f}, valid_loss={avg_valid_loss:.4f}")
 
     if avg_valid_loss < best_valid_loss:
