@@ -46,6 +46,8 @@ def greedy_decode(sentence,answer):
         generated_ids=[]
         for step in range(max_len):
             logits,hidden,cell,weights=decoder.forward_step(input_token,hidden,cell,encoder_outputs,mask)
+            if len(generated_ids)>=2 and generated_ids[-1]==generated_ids[-2]:
+                logits[0,generated_ids[-1]]=-float('inf')
             next_id=logits.argmax(dim=-1)
             if next_id.item()==eos_id:
                 break
@@ -68,6 +70,8 @@ def beam_search_decode(sentence,answer,beam_width=3,length_alpha=0.7):
                     continue
                 input_token=torch.tensor([seq[-1]],device=device)
                 logits,new_h,new_c,weights=decoder.forward_step(input_token,h,c,encoder_outputs,mask)
+                if len(seq)>=2 and seq[-1]==seq[-2]:
+                    logits[0,seq[-1]]=-float('inf')
                 log_probs=F.log_softmax(logits,dim=-1)
                 top_log_probs,top_ids=log_probs.topk(beam_width,dim=-1)
                 for i in range(beam_width):
@@ -96,3 +100,8 @@ def generate(sentence,answer,method="greedy"):
     else:
         raise ValueError("method must be greedy or beam")
 
+if __name__=="__main__":
+    test_sentence="علامہ اقبال کا انتقال 1938 میں لاہور میں ہوا"
+    test_answer="1938"
+    print("Greedy:",generate(test_sentence,test_answer,method="greedy"))
+    print("Beam:",generate(test_sentence,test_answer,method="beam"))
