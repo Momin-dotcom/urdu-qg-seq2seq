@@ -96,8 +96,3 @@ def generate(sentence,answer,method="greedy"):
     else:
         raise ValueError("method must be greedy or beam")
 
-if __name__=="__main__":
-    test_sentence="دریائے سندھ پاکستان کا سب سے بڑا دریا ہے"
-    test_answer="دریائے سندھ"
-    print("Greedy:",generate(test_sentence,test_answer,method="greedy"))
-    print("Beam:",generate(test_sentence,test_answer,method="beam"))
