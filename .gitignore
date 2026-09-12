@@ -249,3 +249,10 @@ hf_cache/
 # Local scratch/debug outputs
 scratch/
 *.tmp*.tsv
+
+# Local dataset files
+data/*.tsv
+*.tsv
+
+# Local accidental file
+tatusq
