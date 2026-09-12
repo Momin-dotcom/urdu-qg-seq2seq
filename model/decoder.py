@@ -38,3 +38,4 @@ class Decoder(nn.Module):
             teacher_force=torch.rand(1).item()<tf_ratio
             input_token=target[:,t] if teacher_force else output.argmax(dim=-1)
         return outputs,hidden_state,cell_state
+    
