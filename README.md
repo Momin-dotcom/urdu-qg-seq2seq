@@ -226,4 +226,4 @@ A minimal web UI (built with Streamlit) lets a user paste an Urdu sentence, mark
 This is a group assignment completed by two members. Both members contributed to model implementation, training, evaluation, and independently rated the human-evaluation samples (see `results/human_eval_results.csv` for both members' ratings and `results/metrics.md` for Cohen's κ agreement scores).
 
 - Medium blog post: *https://medium.com/@mominnadeempak/teaching-a-machine-to-ask-questions-in-urdu-b4e91cba9474*
-- LinkedIn post: *[link here]*
+- LinkedIn post: *https://lnkd.in/p/d-qx36ZP*
