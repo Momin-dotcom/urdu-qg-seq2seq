@@ -207,7 +207,9 @@ See [`results/metrics.md`](results/metrics.md) for full tables and discussion, a
 
 ## Front End
 
-A minimal web UI (built with Streamlit) lets a user paste an Urdu sentence, mark the answer span, and see both the greedy and beam-search generated questions from the trained model. See `results/figures/frontend.png` for a screenshot.
+A minimal web UI (built with Streamlit) lets a user paste an Urdu sentence, mark the answer span, and see both the greedy and beam-search generated questions from the trained model.
+
+![Front-end screenshot](results/figures/frontend.png)
 
 ---
 
