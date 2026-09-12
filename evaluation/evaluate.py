@@ -50,8 +50,6 @@ def collate_fn(batch):
     return padded_srcs, padded_tgts
 
 
-# ---------- Validation loss + perplexity ----------
-
 valid_pairs = load_pairs("data/valid.tsv")
 valid_dataset = SentencePieceDataset(valid_pairs, tokenizer)
 valid_loader = DataLoader(valid_dataset, batch_size=64, shuffle=False, collate_fn=collate_fn)
@@ -78,7 +76,6 @@ print(f"Validation loss: {avg_valid_loss:.4f}")
 print(f"Perplexity: {perplexity:.4f}")
 
 
-# ---------- Greedy decoding ----------
 
 def encode_tagged_source(tagged_sentence):
     ids = tokenizer.encode(tagged_sentence, out_type=int)
@@ -105,9 +102,6 @@ def greedy_decode_tagged(tagged_sentence):
     return tokenizer.decode(generated_ids)
 
 
-# ---------- Helper: extract plain sentence + answer from a tagged source ----------
-# (train.tsv sources already have <ans> ... </ans> around the answer span;
-#  beam_search_decode expects a plain sentence + the answer text separately)
 
 def extract_plain_and_answer(tagged_source):
     match = re.search(r"<ans>\s*(.*?)\s*</ans>", tagged_source)
@@ -119,8 +113,7 @@ def extract_plain_and_answer(tagged_source):
     return plain, answer
 
 
-# ---------- Scoring ----------
-
+#Scoring
 import sacrebleu
 from rouge_score import rouge_scorer
 
@@ -138,9 +131,6 @@ def score(hyps, refs):
     unk_rate = sum(h.count("\u2047") for h in hyps) / max(
         1, sum(len(h.split()) for h in hyps))
     return {"BLEU-4": bleu, "ROUGE-L": rl, "unk_rate": unk_rate}
-
-
-# ---------- Run greedy + beam on first 50 validation examples ----------
 
 hyps_greedy = []
 hyps_beam = []
@@ -163,9 +153,6 @@ beam_results = score(hyps_beam, refs)
 
 print("Greedy BLEU/ROUGE/unk_rate (first 50 examples):", greedy_results)
 print("Beam BLEU/ROUGE/unk_rate (first 50 examples):", beam_results)
-
-
-# ---------- Save results/samples.tsv (manual requirement) ----------
 
 os.makedirs("results", exist_ok=True)
 
