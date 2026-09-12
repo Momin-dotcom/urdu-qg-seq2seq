@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import sentencepiece as spm
 
+
 def load_pairs(path):
     pairs = []
     with open(path, "r", encoding="utf-8") as f:
@@ -17,6 +18,7 @@ def load_pairs(path):
             source, target = line.split("\t")
             pairs.append((source, target))
     return pairs
+
 
 class SentencePieceDataset(Dataset):
     def __init__(self, pairs, sp):
@@ -33,6 +35,7 @@ class SentencePieceDataset(Dataset):
         tgt_ids = self.sp.encode(tgt, add_bos=True, add_eos=True)
         return torch.tensor(src_ids, dtype=torch.long), torch.tensor(tgt_ids, dtype=torch.long)
 
+
 def collate_fn(batch):
     src, tgt = zip(*batch)
     padded_srcs = pad_sequence(src, batch_first=True, padding_value=0)
@@ -44,7 +47,6 @@ def combine_bidirectional(h_or_c, num_layers):
     h_or_c = h_or_c.view(num_layers, 2, h_or_c.size(1), h_or_c.size(2))
     combined = h_or_c[:, 0, :, :] + h_or_c[:, 1, :, :]
     return combined
-
 
 pad_id = 0
 vocab_size = 8000
@@ -65,19 +67,16 @@ loss_criteria = nn.CrossEntropyLoss(ignore_index=pad_id)
 
 total_parameters = sum(p.numel() for p in encoder.parameters()) + sum(p.numel() for p in decoder.parameters())
 print(f"Total parameters: {total_parameters}")
-
 best_valid_loss = float('inf')
 
 for epoch in range(10):
-    print(epoch)
-
+    print(f"Epoch {epoch}")
     encoder.train()
     decoder.train()
     total_train_loss = 0
 
     for src_batch, tgt_batch in train_loader:
         optimizer.zero_grad()
-
         encoder_outputs, (h_n, c_n) = encoder(src_batch)
         initial_hidden = combine_bidirectional(h_n, 2)
         initial_cell = combine_bidirectional(c_n, 2)
@@ -87,6 +86,7 @@ for epoch in range(10):
         loss.backward()
         optimizer.step()
         total_train_loss += loss.item()
+
     avg_train_loss = total_train_loss / len(train_loader)
     encoder.eval()
     decoder.eval()
