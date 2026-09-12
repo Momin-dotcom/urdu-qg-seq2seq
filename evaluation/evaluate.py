@@ -2,11 +2,15 @@ import torch
 import torch.nn as nn
 import math
 import sys
+import os
+import re
+import csv
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
 
 sys.path.append("model")
-from decode import encoder, decoder, tokenizer, device, pad_id, sos_id, eos_id, max_len, combine_bidirectional
+from decode import (encoder, decoder, tokenizer, device, pad_id, sos_id, eos_id,
+                     max_len, combine_bidirectional, beam_search_decode)
 
 vocab_size = 8000
 
@@ -50,7 +54,6 @@ valid_pairs = load_pairs("data/valid.tsv")
 valid_dataset = SentencePieceDataset(valid_pairs, tokenizer)
 valid_loader = DataLoader(valid_dataset, batch_size=64, shuffle=False, collate_fn=collate_fn)
 
-# ---- Perplexity nikaalo ----
 loss_criteria = nn.CrossEntropyLoss(ignore_index=pad_id)
 total_valid_loss = 0
 
@@ -73,7 +76,7 @@ print(f"Validation loss: {avg_valid_loss:.4f}")
 print(f"Perplexity: {perplexity:.4f}")
 
 
-# ---- Greedy decoding (already-tagged sentences ke liye) ----
+
 def encode_tagged_source(tagged_sentence):
     ids = tokenizer.encode(tagged_sentence, out_type=int)
     input_ids = torch.tensor([ids], device=device)
@@ -99,27 +102,64 @@ def greedy_decode_tagged(tagged_sentence):
     return tokenizer.decode(generated_ids)
 
 
-# ---- Scoring (manual ka diya hua) ----
+
+def extract_plain_and_answer(tagged_source):
+    match = re.search(r"<ans>\s*(.*?)\s*</ans>", tagged_source)
+    if match is None:
+        return tagged_source, ""
+    answer = match.group(1)
+    plain = re.sub(r"<ans>\s*", "", tagged_source)
+    plain = re.sub(r"\s*</ans>", "", plain)
+    return plain, answer
+
+
+#Scoring
 import sacrebleu
 from rouge_score import rouge_scorer
 
 
+class WhitespaceTokenizer:
+    def tokenize(self, text):
+        return text.split()
+
+
 def score(hyps, refs):
     bleu = sacrebleu.corpus_bleu(hyps, [refs]).score
-    scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False)
+    scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False, tokenizer=WhitespaceTokenizer())
     rl = sum(scorer.score(r, h)["rougeL"].fmeasure
              for h, r in zip(hyps, refs)) / len(refs)
     unk_rate = sum(h.count("\u2047") for h in hyps) / max(
         1, sum(len(h.split()) for h in hyps))
     return {"BLEU-4": bleu, "ROUGE-L": rl, "unk_rate": unk_rate}
 
-
-hyps = []
+hyps_greedy = []
+hyps_beam = []
 refs = []
+
 for source, target in valid_pairs[:50]:
-    generated_question = greedy_decode_tagged(source)
-    hyps.append(generated_question)
+    greedy_question = greedy_decode_tagged(source)
+    hyps_greedy.append(greedy_question)
     refs.append(target)
 
-results = score(hyps, refs)
-print("BLEU/ROUGE/unk_rate (first 50 examples):", results)
+    plain_sentence, answer_text = extract_plain_and_answer(source)
+    if answer_text:
+        beam_question = beam_search_decode(plain_sentence, answer_text)
+    else:
+        beam_question = ""
+    hyps_beam.append(beam_question)
+
+greedy_results = score(hyps_greedy, refs)
+beam_results = score(hyps_beam, refs)
+
+print("Greedy BLEU/ROUGE/unk_rate (first 50 examples):", greedy_results)
+print("Beam BLEU/ROUGE/unk_rate (first 50 examples):", beam_results)
+
+os.makedirs("results", exist_ok=True)
+
+with open("results/samples.tsv", "w", encoding="utf-8", newline="") as f:
+    writer = csv.writer(f, delimiter="\t")
+    writer.writerow(["source", "reference", "greedy", "beam"])
+    for i, (source, target) in enumerate(valid_pairs[:50]):
+        writer.writerow([source, target, hyps_greedy[i], hyps_beam[i]])
+
+print("Saved results/samples.tsv")

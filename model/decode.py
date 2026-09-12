@@ -22,7 +22,7 @@ def combine_bidirectional(h_or_c,num_layers):
 encoder=Encoder().to(device)
 decoder=Decoder(vocabulary_size=vocab_size,embedding_dimension=256,hidden_dimensions=512,encoder_hidden_dimension=1024,numOfLayers=2,dropout=0.3,attention_dimension=512).to(device)
 
-checkpoint=torch.load("model/best_checkpoint.pt",map_location=device)
+checkpoint=torch.load("best_checkpoint.pt",map_location=device)
 encoder.load_state_dict(checkpoint["encoder"])
 decoder.load_state_dict(checkpoint["decoder"])
 
