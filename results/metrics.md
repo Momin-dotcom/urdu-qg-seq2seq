@@ -41,3 +41,12 @@
 | Member 1 (% yes) | 10.0 | 6.0 | 2.0 |
 | Member 2 (% yes) | 2.0 | 16.0 | 14.0 |
 | Cohen's κ | -0.034 | 0.104 | -0.036 |
+
+## Discussion Notes
+
+- The model has learned the basic pattern of question formation (کیا/کب/کہاں/کون — what/when/where/who), but struggles to choose the correct question word for the given answer type — the very low % yes scores in human evaluation confirm this.
+- Many outputs showed token repetition (e.g., "کے کے کے کے"), which immediately fails Fluency; this in turn causes Relevance and Answerability to fail automatically as well, since an incoherent sentence cannot be meaningfully judged on those criteria.
+- Interesting finding: on UQA validation, beam search (BLEU 1.83) slightly outperformed greedy decoding (BLEU 1.63), but the opposite happened on Wiki-UQA — greedy (BLEU 3.71) outperformed beam (BLEU 2.18). This shows that beam search does not always improve output quality, particularly for undertrained models, where it can converge on a "safe" but generic sequence that overlaps less with the reference.
+- BLEU-4 scores are lower than the manual's expected range (6–13), indicating that the model would benefit from additional training/tuning — 10 epochs appear insufficient for a dataset of this size.
+- Cohen's κ values are very low (some negative), indicating poor agreement between the two human raters. This is itself a meaningful finding: when model outputs are this weak and inconsistent, judging them as "good/bad" becomes highly subjective and varies rater to rater.
+- The training/validation loss curve shows clear overfitting: train_loss decreased steadily (5.48 → 2.75), but valid_loss began increasing after epoch 3 (4.56, the best checkpoint) — meaning the model started memorizing the training data rather than generalizing further. This is why the saved best_checkpoint corresponds to epoch 3, not epoch 9.
