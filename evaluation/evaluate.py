@@ -50,7 +50,6 @@ valid_pairs = load_pairs("data/valid.tsv")
 valid_dataset = SentencePieceDataset(valid_pairs, tokenizer)
 valid_loader = DataLoader(valid_dataset, batch_size=64, shuffle=False, collate_fn=collate_fn)
 
-# ---- Perplexity nikaalo ----
 loss_criteria = nn.CrossEntropyLoss(ignore_index=pad_id)
 total_valid_loss = 0
 
@@ -73,7 +72,6 @@ print(f"Validation loss: {avg_valid_loss:.4f}")
 print(f"Perplexity: {perplexity:.4f}")
 
 
-# ---- Greedy decoding (already-tagged sentences ke liye) ----
 def encode_tagged_source(tagged_sentence):
     ids = tokenizer.encode(tagged_sentence, out_type=int)
     input_ids = torch.tensor([ids], device=device)
@@ -99,20 +97,22 @@ def greedy_decode_tagged(tagged_sentence):
     return tokenizer.decode(generated_ids)
 
 
-# ---- Scoring (manual ka diya hua) ----
 import sacrebleu
 from rouge_score import rouge_scorer
 
 
+class WhitespaceTokenizer:
+    def tokenize(self, text):
+        return text.split()
+
 def score(hyps, refs):
     bleu = sacrebleu.corpus_bleu(hyps, [refs]).score
-    scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False)
+    scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False, tokenizer=WhitespaceTokenizer())
     rl = sum(scorer.score(r, h)["rougeL"].fmeasure
              for h, r in zip(hyps, refs)) / len(refs)
     unk_rate = sum(h.count("\u2047") for h in hyps) / max(
         1, sum(len(h.split()) for h in hyps))
     return {"BLEU-4": bleu, "ROUGE-L": rl, "unk_rate": unk_rate}
-
 
 hyps = []
 refs = []
